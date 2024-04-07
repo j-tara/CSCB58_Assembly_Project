@@ -45,7 +45,10 @@
 .eqv purple_value 0x9900cc		# Enemy colour
 .eqv cyan_value 0x00ffff		# Enemy colour
 .eqv brown_value 0x996633
+
 .eqv PLAYER_LOCATION 13824		# 8 pixels above platform
+.eqv PURPLE_ENEMY_LOCATION 4012
+.eqv CYAN_ENEMY_LOCATION 9548
 
 load_graphics:
 
@@ -98,11 +101,11 @@ li $a0, PLAYER_LOCATION		# Starting location - this is the leftmost pixel of the
 jal PAINT_PLAYER	# Calling paint player function
 
 #Painting enemy (height 3, width 3) - spawn on top floor
-li $a0, 4012					
+li $a0, PURPLE_ENEMY_LOCATION					
 jal PAINT_ENEMY_1		# Calling paint player function
 
 #Painting enemy (height 3, width 3) - spawn on middle floor
-li $a0, 9548					
+li $a0, CYAN_ENEMY_LOCATION					
 jal PAINT_ENEMY_2		# Calling paint player function
 
 # Draw left heart
