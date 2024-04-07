@@ -51,12 +51,12 @@ load_graphics:
 
 .text
 # Global variables
-li $s0, BASE_ADDRESS 		# $t0 stores the base address for display
-li, $s1, PLAYER_LOCATION	# Stores the current player location (NOT ADDRESS) that gets updated with movement
-li, $s2, 0			# Game state (0 -> game in progress, 1 -> game over)
-li $s3, 0			# Number of jumps performed (before ground is reached) - does not allow more jumps if >= 2
-li $s4, 0			# Number of hearts erased / number of hits with enemy  (min 0, max 3)
-li $s5, ENEMY_REGENERATION_TIME			# How many iterations of the loop to wait until enemies are recoloured
+li $s0, BASE_ADDRESS 			# $t0 stores the base address for display
+li, $s1, PLAYER_LOCATION		# Stores the current player location (NOT ADDRESS) that gets updated with movement
+li, $s2, 0				# Game state (0 -> game in progress, 1 -> game over)
+li $s3, 0				# Number of jumps performed (before ground is reached) - does not allow more jumps if >= 2
+li $s4, 0				# Number of hearts erased / number of hits with enemy  (min 0, max 3)
+li $s5, ENEMY_REGENERATION_TIME	 	# How many iterations of the loop to wait until enemies are recoloured
 
 # Reset screen to black
 li $a0, 0
@@ -162,6 +162,54 @@ li $v0, 10
 syscall
 
 
+# POST GAME PAGES
+YOU_WIN:
+# Reset screen to black
+li $a0, 0
+li $a1, 16384 
+li $a2, black_value
+jal FILL_PIXELS_LEFT_TO_RIGHT
+
+# Paint original hearts
+li $a0, 464					
+jal PAINT_HEART
+li $a0, 480					
+jal PAINT_HEART
+li $a0, 496					
+jal PAINT_HEART
+
+# Update the hearts to what matches your score
+jal REMOVE_HEART
+
+# Display "YOU WON!"
+
+
+j end_program
+
+
+YOU_LOSE:
+# Reset screen to black
+li $a0, 0
+li $a1, 16384 
+li $a2, black_value
+jal FILL_PIXELS_LEFT_TO_RIGHT
+
+# Draw left heart
+li $a0, 464					
+jal PAINT_LOST_HEART		# Calling paint heart function
+
+# Draw middle heart
+li $a0, 480					
+jal PAINT_LOST_HEART	# Calling paint heart function
+
+# Draw right heart
+li $a0, 496					
+jal PAINT_LOST_HEART		# Calling paint heart function
+
+# Display "YOU LOST!"
+
+j end_program
+
 
 # ACTION LOGIC
 
@@ -202,6 +250,7 @@ add $t3, $t3, $s0 		# Add $t3 to base address to get current address (in $t3)
 
 check_right_collision_loop:
 	lw $t4, 0($t2)			# Store colour of right pixel in $t4	
+	beq $t4, brown_value, YOU_WIN	# Player hit the door and they win
 	beq $t4, cyan_value, TOUCHED_CYAN_ENEMY	
 	beq $t4, purple_value, TOUCHED_PURPLE_ENEMY	
 	bne, $t4, black_value, wait	# If pixel is not black (collision), ignore right action and continue to main loop
@@ -452,7 +501,8 @@ jr $ra
 
 remove_third_heart:
 li $a0, 464					
-jal PAINT_LOST_HEART	
+jal PAINT_LOST_HEART
+j YOU_LOSE		# Go to lost game screen	
 
 remove_second_heart:
 li $a0, 480					
