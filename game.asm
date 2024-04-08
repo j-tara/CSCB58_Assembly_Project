@@ -158,8 +158,8 @@ after_player_movement:
 beqz $s5, REGENERATE_ENEMIES
 addi $s5, $s5, -1		# Update an iteration for the enemy regeneration counter
 
-#jal MOVE_PURPLE_ENEMY
-#jal MOVE_CYAN_ENEMY
+jal MOVE_PURPLE_ENEMY
+jal MOVE_CYAN_ENEMY
 
 after_enemy_movement:
 
@@ -616,6 +616,15 @@ beq $t7, 1, move_purple_left
 
 move_purple_left:
 
+# Case where purple enemy is touching something - don't make it go through object
+add $t2, $s0, $s6
+lw $t3, -256($t2)
+bne, $t3, black_value, dont_move_purple
+lw $t3, -4($t2)
+bne, $t3, black_value, dont_move_purple
+lw $t3, 248($t2)
+bne, $t3, black_value, dont_move_purple
+
 li $t7, 1
 
 move $a0, $s6					
@@ -632,6 +641,15 @@ jr $ra
 
 move_purple_right:
 
+# Case where purple enemy is touching something - don't make it go through object
+add $t2, $s0, $s6
+lw $t3, -248($t2)
+bne, $t3, black_value, dont_move_purple
+lw $t3, 12($t2)
+bne, $t3, black_value, dont_move_purple
+lw $t3, 272($t2)
+bne, $t3, black_value, dont_move_purple
+
 li $t7, 0
 
 move $a0, $s6					
@@ -641,6 +659,12 @@ addi $s6, $s6, 4
 move $a0, $s6					
 jal PAINT_ENEMY_1	# Calling paint enemy function
 
+lw $ra, 0($sp)
+addi $sp, $sp, 4
+
+jr $ra
+
+dont_move_purple:
 lw $ra, 0($sp)
 addi $sp, $sp, 4
 
@@ -668,6 +692,13 @@ beq $t8, 1, move_cyan_right
 
 move_cyan_right:
 
+# Case where cyan enemy is touching something - don't make it go through object
+add $t2, $s0, $s7
+lw $t3, 508($t2)
+bne, $t3, black_value, dont_move_cyan
+lw $t3, 524($t2)
+bne, $t3, black_value, dont_move_cyan
+
 li $t8, 1
 
 move $a0, $s7					
@@ -684,6 +715,13 @@ jr $ra
 
 move_cyan_left:
 
+# Case where cyan enemy is touching something - don't make it go through object
+add $t2, $s0, $s7
+lw $t3, -4($t2)
+bne, $t3, black_value, dont_move_cyan
+lw $t3, 12($t2)
+bne, $t3, black_value, dont_move_cyan
+
 li $t8, 0
 
 move $a0, $s7					
@@ -697,7 +735,12 @@ lw $ra, 0($sp)
 addi $sp, $sp, 4
 
 jr $ra
-		
+
+dont_move_cyan:
+lw $ra, 0($sp)
+addi $sp, $sp, 4
+
+jr $ra	
 
 # GRAPHICS FUNCTIONS
 
