@@ -47,8 +47,8 @@
 .eqv brown_value 0x996633
 
 .eqv PLAYER_LOCATION 13824		# 8 pixels above platform
-.eqv PURPLE_ENEMY_LOCATION 4012
-.eqv CYAN_ENEMY_LOCATION 9548
+.eqv PURPLE_ENEMY_LOCATION 3880
+.eqv CYAN_ENEMY_LOCATION 9676
 
 load_graphics:
 
@@ -59,7 +59,12 @@ li, $s1, PLAYER_LOCATION		# Stores the current player location (NOT ADDRESS) tha
 li, $s2, 0				# Game state (0 -> game in progress, 1 -> game over)
 li $s3, 0				# Number of jumps performed (before ground is reached) - does not allow more jumps if >= 2
 li $s4, 0				# Number of hearts erased / number of hits with enemy  (min 0, max 3)
-li $s5, ENEMY_REGENERATION_TIME	 	# How many iterations of the loop to wait until enemies are recoloured
+#li $s5, -1			 	# How many iterations of the loop to wait until enemies are recoloured
+li $s5, ENEMY_REGENERATION_TIME
+li $s6 PURPLE_ENEMY_LOCATION		# Current purple enemy location
+li $s7 CYAN_ENEMY_LOCATION		# Current cyan enemy location
+li $t7 0				# Purple enemy directions (0 = purple right, 1 = purple left)
+li $t8 0				# Cyan enemy directions (0 = cyan left, 1 = cyan right)
 
 # Reset screen to black
 li $a0, 0
@@ -132,24 +137,31 @@ jal REMOVE_HEART
 
 #Check for keypress
 check_keypress:
-li $t9, 0xffff0000
-lw $t8, 0($t9)
-beq $t8, 1, keypress_happened
+li $t3, 0xffff0000
+lw $t4, 0($t3)
+beq $t4, 1, keypress_happened
 
 after_keypress_check:
 # Check for climbing
 jal check_climbing
 move, $t4, $v0			# Move 'check climbing' result in $t4 (0 -> no climbing, 1 -> climbing)
-bnez $t5, wait			# If $t4 != 0, climbing occurs, so skip gravity
+bnez $t5, after_player_movement			# If $t4 != 0, climbing occurs, so skip gravity
 
 # Check for gravity
 jal check_gravity
 move, $t5, $v0			# Move 'check gravity' result in $t5 (0 -> no gravity, 1 -> gravity)
 bnez $t5, perform_gravity	# If $t5 != 0, perform gravity
 
+after_player_movement:
 # Check if enemies need to be regenerated
+#jal REGENERATE_ENEMIES
 beqz $s5, REGENERATE_ENEMIES
 addi $s5, $s5, -1		# Update an iteration for the enemy regeneration counter
+
+#jal MOVE_PURPLE_ENEMY
+#jal MOVE_CYAN_ENEMY
+
+after_enemy_movement:
 
 wait:
 li $v0, 32
@@ -229,7 +241,7 @@ addi $s1, $s1, 256
 move $a0, $s1					
 jal PAINT_PLAYER	# Calling paint player function
 
-j wait
+j after_player_movement
 
 
 # Move character right 
@@ -256,7 +268,7 @@ check_right_collision_loop:
 	beq $t4, brown_value, YOU_WIN	# Player hit the door and they win
 	beq $t4, cyan_value, TOUCHED_CYAN_ENEMY	
 	beq $t4, purple_value, TOUCHED_PURPLE_ENEMY	
-	bne, $t4, black_value, wait	# If pixel is not black (collision), ignore right action and continue to main loop
+	bne, $t4, black_value, after_player_movement	# If pixel is not black (collision), ignore right action and continue to main loop
 	
 	addi $t2, $t2, 256		# Increment $t2 by 256 to get to the next right pixel (directly below previous one)
 	blt $t2, $t3, check_right_collision_loop	# Iterate from top to bottom of direct right pixels of player (6 times)
@@ -296,7 +308,7 @@ check_left_collision_loop:
 	lw $t4, 0($t2)			# Store colour of left pixel in $t4
 	beq $t4, cyan_value, TOUCHED_CYAN_ENEMY	
 	beq $t4, purple_value, TOUCHED_PURPLE_ENEMY	
-	bne, $t4, black_value, wait	# If pixel is not black (collision), ignore left action and continue to main loop
+	bne, $t4, black_value, after_player_movement	# If pixel is not black (collision), ignore left action and continue to main loop
 	
 	addi $t2, $t2, 256		# Increment $t2 by 256 to get to the next left pixel (directly below previous one)
 	blt $t2, $t3, check_left_collision_loop	# Iterate from top to bottom of direct left pixels of player (6 times)
@@ -380,7 +392,7 @@ perform_climbing:
 	addi $s1, $s1, -1024
 	move $a0, $s1					
 	jal PAINT_PLAYER	# Calling paint player function
-j wait
+j after_player_movement
 
 
 # Character wants to move down
@@ -399,12 +411,12 @@ respond_to_s:
 	addi $s1, $s1, 1024
 	move $a0, $s1					
 	jal PAINT_PLAYER	# Calling paint player function
-	j wait
+	j after_player_movement
 	
 
 
 keypress_happened:
-lw $t2, 4($t9) # this assumes $t9 is set to 0xfff0000 from before
+lw $t2, 4($t3) # this assumes $t3 is set to 0xfff0000 from before
 beq $t2, 0x72, load_graphics # ASCII code of 'r' is 0x71 - reset game
 beq $t2, 0x71, end_program # ASCII code of 'q' is 0x71 - quit game
 beq $t2, 0x64, respond_to_d # ASCII code of 'd' is 0x64 - move right
@@ -526,7 +538,7 @@ TOUCHED_PURPLE_ENEMY:
 addi $sp, $sp, -4	
 sw $ra, 0($sp)
 
-li $a0, 4012	
+move $a0, $s6	
 addi $s4, $s4, 1				
 jal PAINT_HARMLESS_ENEMY_1
 jal REMOVE_HEART
@@ -541,7 +553,7 @@ TOUCHED_CYAN_ENEMY:
 addi $sp, $sp, -4	
 sw $ra, 0($sp)
 
-li $a0, 9548		
+move $a0, $s7		
 addi $s4, $s4, 1			
 jal PAINT_HARMLESS_ENEMY_2
 jal REMOVE_HEART
@@ -553,21 +565,136 @@ jr $ra
 
 REGENERATE_ENEMIES:
 
+# If $s5 == -1, don't regenerate enemies and don't count down
+#bne $s5, -1, check_regenerate_enemies
+#jr $ra
+
+# If $s5 == 0, regenerate enemies. If not, count down $s5 by 1
+check_regenerate_enemies:
+#beqz $s5, regenerate_enemies
+#addi $s5, $s5, -1
+#jr $ra
+
+regenerate_enemies:
+
 addi $sp, $sp, -4	
 sw $ra, 0($sp)
 
 #Painting enemy (height 3, width 3) - spawn on top floor
-li $a0, 4012					
+move $a0, $s6					
 jal PAINT_ENEMY_1		# Calling paint player function
 
 #Painting enemy (height 3, width 3) - spawn on middle floor
-li $a0, 9548					
+move $a0, $s7					
 jal PAINT_ENEMY_2		# Calling paint player function
 
 lw $ra, 0($sp)
 addi $sp, $sp, 4
 
-li $s5, ENEMY_REGENERATION_TIME
+li $s5, ENEMY_REGENERATION_TIME			# Start regnerate enemy counter
+jr $ra
+
+
+MOVE_PURPLE_ENEMY:
+
+addi $sp, $sp, -4	
+sw $ra, 0($sp)
+
+# If $s5 != -1, freeze the harmless enemy
+# $s5, -1, move_purple_enemy
+#lw $ra, 0($sp)
+#addi $sp, $sp, 4
+#jr $ra
+
+move_purple_enemy:
+
+beq $s6, 4012, move_purple_left
+beq $s6, 3880, move_purple_right
+
+beq $t7, 0, move_purple_right 
+beq $t7, 1, move_purple_left
+
+move_purple_left:
+
+li $t7, 1
+
+move $a0, $s6					
+jal ERASE_ENEMY_1	# Calling erase enemy function
+
+addi $s6, $s6, -4
+move $a0, $s6					
+jal PAINT_ENEMY_1	# Calling paint enemy function
+
+lw $ra, 0($sp)
+addi $sp, $sp, 4
+
+jr $ra
+
+move_purple_right:
+
+li $t7, 0
+
+move $a0, $s6					
+jal ERASE_ENEMY_1	# Calling erase enemy function
+
+addi $s6, $s6, 4
+move $a0, $s6					
+jal PAINT_ENEMY_1	# Calling paint enemy function
+
+lw $ra, 0($sp)
+addi $sp, $sp, 4
+
+jr $ra
+
+
+MOVE_CYAN_ENEMY:
+
+addi $sp, $sp, -4	
+sw $ra, 0($sp)
+
+# If $s5 != -1, freeze the harmless enemy
+#beq $s5, -1, move_cyan_enemy
+#lw $ra, 0($sp)
+#addi $sp, $sp, 4
+#jr $ra
+
+move_cyan_enemy:
+
+beq $s7, 9480, move_cyan_right
+beq $s7, 9676, move_cyan_left
+
+beq $t8, 0, move_cyan_left 
+beq $t8, 1, move_cyan_right
+
+move_cyan_right:
+
+li $t8, 1
+
+move $a0, $s7					
+jal ERASE_ENEMY_2	# Calling erase enemy function
+
+addi $s7, $s7, 4
+move $a0, $s7					
+jal PAINT_ENEMY_2	# Calling paint enemy function
+
+lw $ra, 0($sp)
+addi $sp, $sp, 4
+
+jr $ra
+
+move_cyan_left:
+
+li $t8, 0
+
+move $a0, $s7					
+jal ERASE_ENEMY_2	# Calling erase enemy function
+
+addi $s7, $s7, -4
+move $a0, $s7					
+jal PAINT_ENEMY_2	# Calling paint enemy function
+
+lw $ra, 0($sp)
+addi $sp, $sp, 4
 
 jr $ra
 		
@@ -758,6 +885,29 @@ sw $t3, 520($t1)
 
 jr $ra
 
+ERASE_ENEMY_1:
+move, $t0, $s0		# Storing $s0's value (BASE_ADDRESS) in a temporary register
+move, $t1, $a0		# Store the a0 arg (start pixel) in $t1
+li, $t3, black_value	# Store the a2 arg (colour) in $t3
+
+add $t1, $t1, $t0       # Add base address to get the actual address - start pixel
+
+sw $t3, 0($t1)      	# Fill the first enemy row
+sw $t3, 4($t1)	    	
+sw $t3, 8($t1)
+sw $t3, -252($t1)	# Fill top spike
+
+sw $t3, 252($t1)	# Fill the second enemy row
+sw $t3, 256($t1)    	
+sw $t3, 260($t1)	
+sw $t3, 264($t1)
+sw $t3, 268($t1)
+
+sw $t3, 512($t1)    	# Fill the third enemy row	
+sw $t3, 520($t1)
+
+jr $ra
+
 PAINT_ENEMY_2:
 move, $t0, $s0		# Storing $s0's value (BASE_ADDRESS) in a temporary register
 move, $t1, $a0		# Store the a0 arg (start pixel) in $t1
@@ -779,6 +929,23 @@ PAINT_HARMLESS_ENEMY_2:
 move, $t0, $s0		# Storing $s0's value (BASE_ADDRESS) in a temporary register
 move, $t1, $a0		# Store the a0 arg (start pixel) in $t1
 li, $t3, white_value	# Store the a2 arg (colour) in $t3
+
+add $t1, $t1, $t0       # Add base address to get the actual address - start pixel
+
+sw $t3, 0($t1)      	# Fill the first enemy row   	
+sw $t3, 8($t1)
+
+sw $t3, 260($t1)    	# Fill the second enemy row	
+
+sw $t3, 512($t1)	# Fill enemy feet
+sw $t3, 520($t1)
+
+jr $ra
+
+ERASE_ENEMY_2:
+move, $t0, $s0		# Storing $s0's value (BASE_ADDRESS) in a temporary register
+move, $t1, $a0		# Store the a0 arg (start pixel) in $t1
+li, $t3, black_value	# Store the a2 arg (colour) in $t3
 
 add $t1, $t1, $t0       # Add base address to get the actual address - start pixel
 
