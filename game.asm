@@ -616,6 +616,8 @@ beq $t7, 1, move_purple_left
 
 move_purple_left:
 
+li $t7, 1
+
 # Case where purple enemy is touching something - don't make it go through object
 add $t2, $s0, $s6
 lw $t3, -256($t2)
@@ -624,8 +626,6 @@ lw $t3, -4($t2)
 bne, $t3, black_value, dont_move_purple
 lw $t3, 248($t2)
 bne, $t3, black_value, dont_move_purple
-
-li $t7, 1
 
 move $a0, $s6					
 jal ERASE_ENEMY_1	# Calling erase enemy function
@@ -641,6 +641,8 @@ jr $ra
 
 move_purple_right:
 
+li $t7, 0
+
 # Case where purple enemy is touching something - don't make it go through object
 add $t2, $s0, $s6
 lw $t3, -248($t2)
@@ -649,8 +651,6 @@ lw $t3, 12($t2)
 bne, $t3, black_value, dont_move_purple
 lw $t3, 272($t2)
 bne, $t3, black_value, dont_move_purple
-
-li $t7, 0
 
 move $a0, $s6					
 jal ERASE_ENEMY_1	# Calling erase enemy function
@@ -692,14 +692,14 @@ beq $t8, 1, move_cyan_right
 
 move_cyan_right:
 
+li $t8, 1
+
 # Case where cyan enemy is touching something - don't make it go through object
 add $t2, $s0, $s7
 lw $t3, 508($t2)
 bne, $t3, black_value, dont_move_cyan
 lw $t3, 524($t2)
 bne, $t3, black_value, dont_move_cyan
-
-li $t8, 1
 
 move $a0, $s7					
 jal ERASE_ENEMY_2	# Calling erase enemy function
@@ -715,14 +715,14 @@ jr $ra
 
 move_cyan_left:
 
+li $t8, 0
+
 # Case where cyan enemy is touching something - don't make it go through object
 add $t2, $s0, $s7
 lw $t3, -4($t2)
 bne, $t3, black_value, dont_move_cyan
 lw $t3, 12($t2)
 bne, $t3, black_value, dont_move_cyan
-
-li $t8, 0
 
 move $a0, $s7					
 jal ERASE_ENEMY_2	# Calling erase enemy function
