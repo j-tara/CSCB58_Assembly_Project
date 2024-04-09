@@ -33,7 +33,7 @@
 
 
 .eqv BASE_ADDRESS 0x10008000
-.eqv ENEMY_REGENERATION_TIME 60
+.eqv ENEMY_REGENERATION_TIME 80
 .eqv red_value 0xff0000
 .eqv green_value 0x00ff00
 .eqv blue_value 0x0000ff
@@ -58,8 +58,8 @@ li, $s1, PLAYER_LOCATION		# Stores the current player location (NOT ADDRESS) tha
 li, $s2, 0				# Game state (0 -> game in progress, 1 -> game over)
 li $s3, 0				# Number of jumps performed (before ground is reached) - does not allow more jumps if >= 2
 li $s4, 0				# Number of hearts erased / number of hits with enemy  (min 0, max 3)
-#li $s5, -1			 	# How many iterations of the loop to wait until enemies are recoloured
-li $s5, ENEMY_REGENERATION_TIME
+li $s5, -1			 	# How many iterations of the loop to wait until cyan enemy is recoloured
+li $t9, -1				# How many iterations of the loop to wait until purple enemy is recoloured
 li $s6 PURPLE_ENEMY_LOCATION		# Current purple enemy location
 li $s7 CYAN_ENEMY_LOCATION		# Current cyan enemy location
 li $t7 0				# Purple enemy directions (0 = purple right, 1 = purple left)
@@ -159,13 +159,13 @@ move, $t5, $v0			# Move 'check gravity' result in $t5 (0 -> no gravity, 1 -> gra
 bnez $t5, perform_gravity	# If $t5 != 0, perform gravity
 
 after_player_movement:
-# Check if enemies need to be regenerated
-#jal REGENERATE_ENEMIES
-beqz $s5, REGENERATE_ENEMIES
-addi $s5, $s5, -1		# Update an iteration for the enemy regeneration counter
 
 jal MOVE_PURPLE_ENEMY
 jal MOVE_CYAN_ENEMY
+
+# Check if enemies need to be regenerated
+jal REGENERATE_CYAN_ENEMY
+jal REGENERATE_PURPLE_ENEMY
 
 after_enemy_movement:
 
@@ -320,8 +320,8 @@ add $t3, $t3, $s0 		# Add $t3 to base address to get current address (in $t3)
 check_right_collision_loop:
 	lw $t4, 0($t2)			# Store colour of right pixel in $t4	
 	beq $t4, brown_value, YOU_WIN	# Player hit the door and they win
-	beq $t4, cyan_value, TOUCHED_CYAN_ENEMY	
-	beq $t4, purple_value, TOUCHED_PURPLE_ENEMY	
+	#beq $t4, cyan_value, TOUCHED_CYAN_ENEMY	
+	#beq $t4, purple_value, TOUCHED_PURPLE_ENEMY	
 	bne, $t4, black_value, after_player_movement	# If pixel is not black (collision), ignore right action and continue to main loop
 	
 	addi $t2, $t2, 256		# Increment $t2 by 256 to get to the next right pixel (directly below previous one)
@@ -360,8 +360,8 @@ add $t3, $t3, $s0 		# Add $t3 to base address to get current address (in $t3)
 
 check_left_collision_loop:
 	lw $t4, 0($t2)			# Store colour of left pixel in $t4
-	beq $t4, cyan_value, TOUCHED_CYAN_ENEMY	
-	beq $t4, purple_value, TOUCHED_PURPLE_ENEMY	
+	#beq $t4, cyan_value, TOUCHED_CYAN_ENEMY	
+	#beq $t4, purple_value, TOUCHED_PURPLE_ENEMY	
 	bne, $t4, black_value, after_player_movement	# If pixel is not black (collision), ignore left action and continue to main loop
 	
 	addi $t2, $t2, 256		# Increment $t2 by 256 to get to the next left pixel (directly below previous one)
@@ -617,19 +617,19 @@ addi $sp, $sp, 4
 	
 jr $ra
 
-REGENERATE_ENEMIES:
+REGENERATE_PURPLE_ENEMY:
 
 # If $s5 == -1, don't regenerate enemies and don't count down
-#bne $s5, -1, check_regenerate_enemies
-#jr $ra
+bne $t9, -1, check_regenerate_purple_enemy
+jr $ra
 
 # If $s5 == 0, regenerate enemies. If not, count down $s5 by 1
-check_regenerate_enemies:
-#beqz $s5, regenerate_enemies
-#addi $s5, $s5, -1
-#jr $ra
+check_regenerate_purple_enemy:
+beqz $t9, regenerate_purple_enemy
+addi $t9, $t9, -1
+jr $ra
 
-regenerate_enemies:
+regenerate_purple_enemy:
 
 addi $sp, $sp, -4	
 sw $ra, 0($sp)
@@ -638,6 +638,29 @@ sw $ra, 0($sp)
 move $a0, $s6					
 jal PAINT_ENEMY_1		# Calling paint player function
 
+lw $ra, 0($sp)
+addi $sp, $sp, 4
+
+li $t9, -1			# Reset regnerate enemy counter
+jr $ra
+
+REGENERATE_CYAN_ENEMY:
+
+# If $s5 == -1, don't regenerate enemies and don't count down
+bne $s5, -1, check_regenerate_cyan_enemy
+jr $ra
+
+# If $s5 == 0, regenerate enemies. If not, count down $s5 by 1
+check_regenerate_cyan_enemy:
+beqz $s5, regenerate_cyan_enemy
+addi $s5, $s5, -1
+jr $ra
+
+regenerate_cyan_enemy:
+
+addi $sp, $sp, -4	
+sw $ra, 0($sp)
+
 #Painting enemy (height 3, width 3) - spawn on middle floor
 move $a0, $s7					
 jal PAINT_ENEMY_2		# Calling paint player function
@@ -645,22 +668,20 @@ jal PAINT_ENEMY_2		# Calling paint player function
 lw $ra, 0($sp)
 addi $sp, $sp, 4
 
-li $s5, ENEMY_REGENERATION_TIME			# Start regnerate enemy counter
+li $s5, -1			# Reset regnerate enemy counter
 jr $ra
 
 
 MOVE_PURPLE_ENEMY:
 
-addi $sp, $sp, -4	
-sw $ra, 0($sp)
-
 # If $s5 != -1, freeze the harmless enemy
-# $s5, -1, move_purple_enemy
-#lw $ra, 0($sp)
-#addi $sp, $sp, 4
-#jr $ra
+beq $t9, -1, move_purple_enemy
+jr $ra
 
 move_purple_enemy:
+
+addi $sp, $sp, -4	
+sw $ra, 0($sp)
 
 beq $s6, 4012, move_purple_left
 beq $s6, 3880, move_purple_right
@@ -675,11 +696,11 @@ li $t7, 1
 # Case where purple enemy is touching something - don't make it go through object
 add $t2, $s0, $s6
 lw $t3, -256($t2)
-bne, $t3, black_value, dont_move_purple
+beq, $t3, blue_value, dont_move_purple
 lw $t3, -4($t2)
-bne, $t3, black_value, dont_move_purple
+beq, $t3, blue_value, dont_move_purple
 lw $t3, 248($t2)
-bne, $t3, black_value, dont_move_purple
+beq, $t3, blue_value, dont_move_purple
 
 move $a0, $s6					
 jal ERASE_ENEMY_1	# Calling erase enemy function
@@ -700,11 +721,11 @@ li $t7, 0
 # Case where purple enemy is touching something - don't make it go through object
 add $t2, $s0, $s6
 lw $t3, -248($t2)
-bne, $t3, black_value, dont_move_purple
+beq, $t3, blue_value, dont_move_purple
 lw $t3, 12($t2)
-bne, $t3, black_value, dont_move_purple
+beq, $t3, blue_value, dont_move_purple
 lw $t3, 272($t2)
-bne, $t3, black_value, dont_move_purple
+beq, $t3, blue_value, dont_move_purple
 
 move $a0, $s6					
 jal ERASE_ENEMY_1	# Calling erase enemy function
@@ -719,6 +740,7 @@ addi $sp, $sp, 4
 jr $ra
 
 dont_move_purple:
+li $t9, ENEMY_REGENERATION_TIME
 lw $ra, 0($sp)
 addi $sp, $sp, 4
 
@@ -727,16 +749,14 @@ jr $ra
 
 MOVE_CYAN_ENEMY:
 
-addi $sp, $sp, -4	
-sw $ra, 0($sp)
-
 # If $s5 != -1, freeze the harmless enemy
-#beq $s5, -1, move_cyan_enemy
-#lw $ra, 0($sp)
-#addi $sp, $sp, 4
-#jr $ra
+beq $s5, -1, move_cyan_enemy
+jr $ra
 
 move_cyan_enemy:
+
+addi $sp, $sp, -4	
+sw $ra, 0($sp)
 
 beq $s7, 9520, move_cyan_right
 beq $s7, 9676, move_cyan_left
@@ -751,9 +771,9 @@ li $t8, 1
 # Case where cyan enemy is touching something - don't make it go through object
 add $t2, $s0, $s7
 lw $t3, 508($t2)
-bne, $t3, black_value, dont_move_cyan
+beq, $t3, blue_value, dont_move_cyan
 lw $t3, 524($t2)
-bne, $t3, black_value, dont_move_cyan
+beq, $t3, blue_value, dont_move_cyan
 
 move $a0, $s7					
 jal ERASE_ENEMY_2	# Calling erase enemy function
@@ -774,9 +794,9 @@ li $t8, 0
 # Case where cyan enemy is touching something - don't make it go through object
 add $t2, $s0, $s7
 lw $t3, -4($t2)
-bne, $t3, black_value, dont_move_cyan
+beq, $t3, blue_value, dont_move_cyan
 lw $t3, 12($t2)
-bne, $t3, black_value, dont_move_cyan
+beq, $t3, blue_value, dont_move_cyan
 
 move $a0, $s7					
 jal ERASE_ENEMY_2	# Calling erase enemy function
@@ -791,6 +811,8 @@ addi $sp, $sp, 4
 jr $ra
 
 dont_move_cyan:
+li $s5, ENEMY_REGENERATION_TIME
+jal TOUCHED_CYAN_ENEMY
 lw $ra, 0($sp)
 addi $sp, $sp, 4
 
