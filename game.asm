@@ -13,20 +13,18 @@
 # - Base Address for Display: 0x10008000 ($gp)
 #
 # Which milestones have been reached in this submission?
-# - Milestone 2
+# - Milestone 4
 #
 # Which approved features have been implemented for milestone 4?
 # (See the assignment handout for the list of additional features)
 # 1. Double jump
-# 2. (fill in the feature, if any)
-# 3. (fill in the feature, if any)
-# ... (add more if necessary)
+# 2. Moving enemies
 #
 # Link to video demonstration for final submission:
 # - (insert YouTube / MyMedia / other URL here). Make sure we can view it!
 #
 # Are you OK with us sharing the video with people outside course staff?
-# - yes / no / yes, and please share this project github link as well!
+# - yes
 #
 # Any additional information that the TA needs to know:
 # - (write here, if any)
@@ -42,6 +40,7 @@
 .eqv black_value 0x000000
 .eqv white_value 0xffffff
 .eqv yellow_value 0xffff99 		# Character colour
+.eqv bright_yellow_value 0xffff00	# Face colour at end of game
 .eqv purple_value 0x9900cc		# Enemy colour
 .eqv cyan_value 0x00ffff		# Enemy colour
 .eqv brown_value 0x996633
@@ -197,6 +196,28 @@ jal PAINT_HEART
 jal REMOVE_HEART
 
 # Display "YOU WON!"
+jal PAINT_FACE_AND_EYES
+
+li, $a0, 9532		# Store the a0 arg (start pixel) in $t0
+li, $a1, 2		# Stores width
+li, $a2, 6		# Stores height
+li $a3, black_value		# stores colour
+jal PAINT_RECTANGLE
+
+li, $a0, 9588		# Store the a0 arg (start pixel) in $t0
+li, $a1, 2		# Stores width
+li, $a2, 6		# Stores height
+li $a3, black_value		# stores colour
+jal PAINT_RECTANGLE
+
+li, $a0, 10564		# Store the a0 arg (start pixel) in $t0
+li, $a1, 12		# Stores width
+li, $a2, 2		# Stores height
+li $a3, black_value		# stores colour
+jal PAINT_RECTANGLE
+
+li $a0, 9660	# Starting location - this is the leftmost pixel of the 56th row				
+jal PAINT_PLAYER	# Calling paint player function
 
 
 j end_program
@@ -222,6 +243,32 @@ li $a0, 496
 jal PAINT_LOST_HEART		# Calling paint heart function
 
 # Display "YOU LOST!"
+jal PAINT_FACE_AND_EYES
+
+li, $a0, 9532		# Store the a0 arg (start pixel) in $t0
+li, $a1, 2		# Stores width
+li, $a2, 6		# Stores height
+li $a3, black_value		# stores colour
+jal PAINT_RECTANGLE
+
+li, $a0, 9588		# Store the a0 arg (start pixel) in $t0
+li, $a1, 2		# Stores width
+li, $a2, 6		# Stores height
+li $a3, black_value		# stores colour
+jal PAINT_RECTANGLE
+
+# Paints frown
+li, $a0, 9540		# Store the a0 arg (start pixel) in $t0
+li, $a1, 12		# Stores width
+li, $a2, 2		# Stores height
+li $a3, black_value		# stores colour
+jal PAINT_RECTANGLE
+
+li $a0, 9648					
+jal PAINT_ENEMY_1	
+
+li $a0, 9680				
+jal PAINT_ENEMY_2
 
 j end_program
 
@@ -1121,3 +1168,84 @@ sw $t3, 264($t1)
 sw $t3, 516($t1)	# Fill bottom of heart
 
 jr $ra
+
+# Function to draw a face at the end of the game
+PAINT_RECTANGLE:
+
+addi $sp, $sp, -4	
+sw $ra, 0($sp)		# Store $ra on stack - since we will call functions inside this function
+
+move, $t0, $a0		# Store the a0 arg (start pixel) in $t0
+move, $t3, $a1		# Stores width
+move, $t1, $a2		# Stores height
+move $t4, $a3		# stores colour
+
+li $t5, 4
+mult $t3, $t5
+mflo $t5 
+
+paint_rectangle_loop:
+	# Push $t0, then $t1 in the stack
+	# so they don't get overwritten in fill pixel function call
+	addi $sp, $sp, -4
+	sw $t0, 0($sp)
+	addi $sp, $sp, -4
+	sw $t1, 0($sp)
+	
+	addi $a0, $t0, 0
+	add $a1, $t0, $t5
+	move $a2, $t4
+	jal FILL_PIXELS_LEFT_TO_RIGHT
+	
+	# Pop $t1, then $t0 from the stack after fill pixel function call
+	lw $t1, 0($sp)
+	addi $sp, $sp, 4
+	lw $t0, 0($sp)
+	addi $sp, $sp, 4
+	
+	# Loop increment
+	addi $t0, $t0, 256
+	
+	addi $t1, $t1 -1
+	
+	# Loop condition
+	bnez $t1, paint_rectangle_loop
+	
+lw $ra, 0($sp)
+addi $sp, $sp, 4	# Pop $ra
+
+jr $ra
+
+
+# Function to draw a face at the end of the game
+PAINT_FACE_AND_EYES:
+
+addi $sp, $sp, -4	
+sw $ra, 0($sp)		# Store $ra on stack - since we will call functions inside this function
+
+# Paints face
+li, $a0, 5152		# Store the a0 arg (start pixel) in $t0
+li, $a1, 30		# Stores width
+li, $a2, 30		# Stores height
+li $a3, bright_yellow_value		# stores colour
+jal PAINT_RECTANGLE
+
+# Painrs left eye
+li, $a0, 6712		# Store the a0 arg (start pixel) in $t0
+li, $a1, 5		# Stores width
+li, $a2, 5		# Stores height
+li $a3, black_value		# stores colour
+jal PAINT_RECTANGLE
+
+# Paints right eye
+li, $a0, 6764		# Store the a0 arg (start pixel) in $t0
+li, $a1, 5		# Stores width
+li, $a2, 5		# Stores height
+li $a3, black_value		# stores colour
+jal PAINT_RECTANGLE
+
+lw $ra, 0($sp)
+addi $sp, $sp, 4	# Pop $ra
+
+jr $ra
+
