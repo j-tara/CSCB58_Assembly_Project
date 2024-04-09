@@ -13,7 +13,7 @@
 # - Base Address for Display: 0x10008000 ($gp)
 #
 # Which milestones have been reached in this submission?
-# - Milestone 4
+# - Most of milestone 4
 #
 # Which approved features have been implemented for milestone 4?
 # (See the assignment handout for the list of additional features)
@@ -21,13 +21,12 @@
 # 2. Moving enemies
 #
 # Link to video demonstration for final submission:
-# - (insert YouTube / MyMedia / other URL here). Make sure we can view it!
+# - https://play.library.utoronto.ca/watch/03868e4fdf77613967f6d74637aa8d7c
 #
 # Are you OK with us sharing the video with people outside course staff?
 # - yes
 #
 # Any additional information that the TA needs to know:
-# - (write here, if any)
 #
 #####################################################################
 
