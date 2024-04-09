@@ -695,12 +695,18 @@ li $t7, 1
 
 # Case where purple enemy is touching something - don't make it go through object
 add $t2, $s0, $s6
-lw $t3, -256($t2)
-beq, $t3, blue_value, dont_move_purple
 lw $t3, -4($t2)
-beq, $t3, blue_value, dont_move_purple
+beq, $t3, blue_value, hurt_by_purple
 lw $t3, 248($t2)
-beq, $t3, blue_value, dont_move_purple
+beq, $t3, blue_value, hurt_by_purple
+
+# Case where player squashed purple enemy
+lw $t3, -248($t2)
+beq, $t3, blue_value, squashed_purple
+lw $t3, -256($t2)
+beq, $t3, blue_value, squashed_purple
+lw $t3, -508($t2)
+beq, $t3, blue_value, squashed_purple
 
 move $a0, $s6					
 jal ERASE_ENEMY_1	# Calling erase enemy function
@@ -720,12 +726,18 @@ li $t7, 0
 
 # Case where purple enemy is touching something - don't make it go through object
 add $t2, $s0, $s6
-lw $t3, -248($t2)
-beq, $t3, blue_value, dont_move_purple
 lw $t3, 12($t2)
-beq, $t3, blue_value, dont_move_purple
+beq, $t3, blue_value, hurt_by_purple
 lw $t3, 272($t2)
-beq, $t3, blue_value, dont_move_purple
+beq, $t3, blue_value, hurt_by_purple
+
+# Case where player squashed purple enemy
+lw $t3, -248($t2)
+beq, $t3, blue_value, squashed_purple
+lw $t3, -256($t2)
+beq, $t3, blue_value, squashed_purple
+lw $t3, -508($t2)
+beq, $t3, blue_value, squashed_purple
 
 move $a0, $s6					
 jal ERASE_ENEMY_1	# Calling erase enemy function
@@ -739,12 +751,19 @@ addi $sp, $sp, 4
 
 jr $ra
 
-dont_move_purple:
+hurt_by_purple:
 li $t9, ENEMY_REGENERATION_TIME
 jal TOUCHED_PURPLE_ENEMY
 lw $ra, 0($sp)
 addi $sp, $sp, 4
+jr $ra
 
+squashed_purple:
+li $t9, ENEMY_REGENERATION_TIME
+move $a0, $s6
+jal ERASE_ENEMY_1
+lw $ra, 0($sp)
+addi $sp, $sp, 4
 jr $ra
 
 
@@ -772,9 +791,15 @@ li $t8, 1
 # Case where cyan enemy is touching something - don't make it go through object
 add $t2, $s0, $s7
 lw $t3, 508($t2)
-beq, $t3, blue_value, dont_move_cyan
+beq, $t3, blue_value, damaged_by_cyan
 lw $t3, 524($t2)
-beq, $t3, blue_value, dont_move_cyan
+beq, $t3, blue_value, damaged_by_cyan
+
+# Case where player squashed cyan enemy
+lw $t3, -256($t2)
+beq, $t3, blue_value, squashed_cyan
+lw $t3, -248($t2)
+beq, $t3, blue_value, squashed_cyan
 
 move $a0, $s7					
 jal ERASE_ENEMY_2	# Calling erase enemy function
@@ -795,9 +820,15 @@ li $t8, 0
 # Case where cyan enemy is touching something - don't make it go through object
 add $t2, $s0, $s7
 lw $t3, -4($t2)
-beq, $t3, blue_value, dont_move_cyan
+beq, $t3, blue_value, damaged_by_cyan
 lw $t3, 12($t2)
-beq, $t3, blue_value, dont_move_cyan
+beq, $t3, blue_value, damaged_by_cyan
+
+# Case where player squashed cyan enemy
+lw $t3, -256($t2)
+beq, $t3, blue_value, squashed_cyan
+lw $t3, -248($t2)
+beq, $t3, blue_value, squashed_cyan
 
 move $a0, $s7					
 jal ERASE_ENEMY_2	# Calling erase enemy function
@@ -811,13 +842,20 @@ addi $sp, $sp, 4
 
 jr $ra
 
-dont_move_cyan:
+damaged_by_cyan:
 li $s5, ENEMY_REGENERATION_TIME
 jal TOUCHED_CYAN_ENEMY
 lw $ra, 0($sp)
 addi $sp, $sp, 4
-
 jr $ra	
+
+squashed_cyan:
+li $s5, ENEMY_REGENERATION_TIME
+move $a0, $s7
+jal ERASE_ENEMY_2
+lw $ra, 0($sp)
+addi $sp, $sp, 4
+jr $ra
 
 # GRAPHICS FUNCTIONS
 
