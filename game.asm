@@ -92,6 +92,13 @@ jal FILL_PIXELS_LEFT_TO_RIGHT
 li $a0, 2272
 jal PAINT_DOOR
 
+# Painting doorknob
+li $a0, 3556
+li $a1, 1
+li $a2, 1
+li $a3, bright_yellow_value
+jal PAINT_RECTANGLE
+
 # Painting first bar - left side below top platform
 li $a0, 4608
 jal PAINT_BAR
