@@ -741,6 +741,7 @@ jr $ra
 
 dont_move_purple:
 li $t9, ENEMY_REGENERATION_TIME
+jal TOUCHED_PURPLE_ENEMY
 lw $ra, 0($sp)
 addi $sp, $sp, 4
 
