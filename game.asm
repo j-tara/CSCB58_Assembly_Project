@@ -738,7 +738,7 @@ sw $ra, 0($sp)
 
 move_cyan_enemy:
 
-beq $s7, 9480, move_cyan_right
+beq $s7, 9520, move_cyan_right
 beq $s7, 9676, move_cyan_left
 
 beq $t8, 0, move_cyan_left 
