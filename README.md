@@ -1,4 +1,4 @@
-# CSCB58_Assembly_Project
+# CSCB58 Assembly Project
 
 This is my platform game written in MIPS assembly (32 bits).
 
